@@ -16,14 +16,16 @@ import (
 	"github.com/jhump/protoreflect/dynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
+	"github.com/monlabs/grpc-mock/pkg/models"
 	"github.com/monlabs/grpc-mock/pkg/stub"
 )
 
 type StubMatcher interface {
-	FindStubs(service, method string, fields map[string]interface{}) []*stub.Stub
+	FindStubs(service, method string, req models.Request) []*stub.Stub
 }
 
 type Server struct {
@@ -89,6 +91,13 @@ func (s *Server) Stop() (err error) {
 
 func (s *Server) createUnaryServerHandler(md *desc.MethodDescriptor) func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	return func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+		metad := make(map[string]interface{})
+		if m, ok := metadata.FromIncomingContext(ctx); ok {
+			for k, v := range m {
+				metad[k] = v[0]
+			}
+		}
+
 		msgFactory := dynamic.NewMessageFactoryWithDefaults()
 		in := msgFactory.NewMessage(md.GetInputType())
 		if err := dec(in); err != nil {
@@ -102,7 +111,10 @@ func (s *Server) createUnaryServerHandler(md *desc.MethodDescriptor) func(srv in
 		data, _ := json.Marshal(in)
 		m := make(map[string]interface{})
 		json.Unmarshal(data, &m)
-		expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), m)
+		expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), models.Request{
+			Data:     m,
+			Metadata: metad,
+		})
 		if len(expects) == 0 {
 			return nil, status.Error(codes.NotFound, "didn't match any stub")
 		}
@@ -125,6 +137,13 @@ func (s *Server) createUnaryServerHandler(md *desc.MethodDescriptor) func(srv in
 
 func (s *Server) createStreamServerHandler(md *desc.MethodDescriptor) func(srv interface{}, stream grpc.ServerStream) error {
 	return func(srv interface{}, stream grpc.ServerStream) error {
+		metad := make(map[string]interface{})
+		if m, ok := metadata.FromIncomingContext(stream.Context()); ok {
+			for k, v := range m {
+				metad[k] = v[0]
+			}
+		}
+
 		msgFactory := dynamic.NewMessageFactoryWithDefaults()
 		in := msgFactory.NewMessage(md.GetInputType())
 		if err := stream.RecvMsg(in); err != nil {
@@ -138,7 +157,10 @@ func (s *Server) createStreamServerHandler(md *desc.MethodDescriptor) func(srv i
 		data, _ := json.Marshal(in)
 		m := make(map[string]interface{})
 		json.Unmarshal(data, &m)
-		expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), m)
+		expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), models.Request{
+			Data:     m,
+			Metadata: metad,
+		})
 		if len(expects) == 0 {
 			return status.Error(codes.NotFound, "didn't match any stub")
 		}
@@ -169,6 +191,12 @@ func (s *Server) createClientStreamServerHandler(md *desc.MethodDescriptor) func
 			in := msgFactory.NewMessage(md.GetInputType())
 			err := stream.RecvMsg(in)
 			if err == io.EOF {
+				metad := make(map[string]interface{})
+				if m, ok := metadata.FromIncomingContext(stream.Context()); ok {
+					for k, v := range m {
+						metad[k] = v[0]
+					}
+				}
 
 				var (
 					out proto.Message
@@ -177,7 +205,10 @@ func (s *Server) createClientStreamServerHandler(md *desc.MethodDescriptor) func
 				data, _ := json.Marshal(in)
 				m := make(map[string]interface{})
 				json.Unmarshal(data, &m)
-				expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), m)
+				expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), models.Request{
+					Data:     m,
+					Metadata: metad,
+				})
 				if len(expects) == 0 {
 					return status.Error(codes.NotFound, "didn't match any stub")
 				}
@@ -208,6 +239,13 @@ func (s *Server) createClientStreamServerHandler(md *desc.MethodDescriptor) func
 
 func (s *Server) createServerStreamServerHandler(md *desc.MethodDescriptor) func(srv interface{}, stream grpc.ServerStream) error {
 	return func(srv interface{}, stream grpc.ServerStream) error {
+		metad := make(map[string]interface{})
+		if m, ok := metadata.FromIncomingContext(stream.Context()); ok {
+			for k, v := range m {
+				metad[k] = v[0]
+			}
+		}
+
 		msgFactory := dynamic.NewMessageFactoryWithDefaults()
 		in := msgFactory.NewMessage(md.GetInputType())
 		if err := stream.RecvMsg(in); err != nil {
@@ -221,7 +259,10 @@ func (s *Server) createServerStreamServerHandler(md *desc.MethodDescriptor) func
 		data, _ := json.Marshal(in)
 		m := make(map[string]interface{})
 		json.Unmarshal(data, &m)
-		expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), m)
+		expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), models.Request{
+			Data:     m,
+			Metadata: metad,
+		})
 		if len(expects) == 0 {
 			return status.Error(codes.NotFound, "didn't match any stub")
 		}
@@ -248,6 +289,12 @@ func (s *Server) createServerStreamServerHandler(md *desc.MethodDescriptor) func
 func (s *Server) createBidiStreamServerHandler(md *desc.MethodDescriptor) func(srv interface{}, stream grpc.ServerStream) error {
 	return func(srv interface{}, stream grpc.ServerStream) error {
 		for {
+			metad := make(map[string]interface{})
+			if m, ok := metadata.FromIncomingContext(stream.Context()); ok {
+				for k, v := range m {
+					metad[k] = v[0]
+				}
+			}
 			msgFactory := dynamic.NewMessageFactoryWithDefaults()
 			in := msgFactory.NewMessage(md.GetInputType())
 			err := stream.RecvMsg(in)
@@ -264,7 +311,10 @@ func (s *Server) createBidiStreamServerHandler(md *desc.MethodDescriptor) func(s
 			data, _ := json.Marshal(in)
 			m := make(map[string]interface{})
 			json.Unmarshal(data, &m)
-			expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), m)
+			expects := s.matcher.FindStubs(md.GetService().GetFullyQualifiedName(), md.GetName(), models.Request{
+				Data:     m,
+				Metadata: metad,
+			})
 			if len(expects) == 0 {
 				return status.Error(codes.NotFound, "didn't match any stub")
 			}

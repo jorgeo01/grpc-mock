@@ -4,15 +4,17 @@ import (
 	"context"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/monlabs/grpc-mock/pkg/models"
 	"github.com/monlabs/grpc-mock/pkg/stub"
 	pbutils "github.com/monlabs/grpc-mock/pkg/utils/pb"
 	mockpb "github.com/monlabs/grpc-mock/proto/mock"
 )
 
 type StubManager interface {
-	FindStubs(service, method string, in map[string]interface{}) []*stub.Stub
+	FindStubs(service, method string, req models.Request) []*stub.Stub
 	AddStub(stub *stub.Stub) error
 	DeleteStub(service, method string) error
 }
@@ -44,6 +46,13 @@ func (s *Server) AddStubs(ctx context.Context, req *mockpb.AddStubsRequest) (*mo
 }
 
 func (s *Server) FindStubs(ctx context.Context, req *mockpb.FindStubsRequest) (*mockpb.FindStubsResponse, error) {
+	metad := make(map[string]interface{})
+	if m, ok := metadata.FromIncomingContext(ctx); ok {
+		for k, v := range m {
+			metad[k] = v[0]
+		}
+	}
+
 	if req.Service == "" {
 		return nil, status.Error(codes.InvalidArgument, "missing service name")
 	}
@@ -52,7 +61,10 @@ func (s *Server) FindStubs(ctx context.Context, req *mockpb.FindStubsRequest) (*
 		return nil, status.Error(codes.InvalidArgument, "missing method")
 	}
 
-	stubs := s.stubMgr.FindStubs(req.Service, req.Method, pbutils.ToMap(req.In))
+	stubs := s.stubMgr.FindStubs(req.Service, req.Method, models.Request{
+		Data:     pbutils.ToMap(req.In),
+		Metadata: metad,
+	})
 
 	rsp := &mockpb.FindStubsResponse{
 		Stubs: StubsToPBStubs(stubs),

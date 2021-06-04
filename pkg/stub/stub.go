@@ -6,18 +6,21 @@ import (
 	"regexp"
 
 	log "github.com/golang/glog"
+	"github.com/monlabs/grpc-mock/pkg/models"
 )
 
 type Stub struct {
-	Service string  `json:"service"`
-	Method  string  `json:"method"`
-	In      *Input  `json:"in"`
-	Out     *Output `json:"out"`
+	Service  string  `json:"service"`
+	Method   string  `json:"method"`
+	Metadata *Input  `json:"metadata"`
+	In       *Input  `json:"in"`
+	Out      *Output `json:"out"`
 }
 
 type Input struct {
 	Equals   map[string]interface{} `json:"equals"`
 	Contains map[string]interface{} `json:"contains"`
+	Has      map[string]interface{} `json:"has"`
 	Matches  map[string]interface{} `json:"matches"`
 }
 
@@ -34,10 +37,15 @@ func (s *Stub) Validate() error {
 	if s.Method == "" {
 		return errors.New("missing method")
 	}
-	if s.In == nil {
+
+	var metadata bool
+	if s.Metadata != nil && len(s.Metadata.Equals)+len(s.Metadata.Contains)+len(s.Metadata.Has)+len(s.Metadata.Matches) > 0 {
+		metadata = true
+	}
+	if !metadata && s.In == nil {
 		return errors.New("missing input")
 	}
-	if len(s.In.Equals) == 0 && len(s.In.Contains) == 0 && len(s.In.Matches) == 0 {
+	if !metadata && len(s.In.Equals)+len(s.In.Contains)+len(s.In.Matches)+len(s.In.Has) == 0 {
 		return errors.New("require at least one of equals, contains or matches")
 	}
 	if s.Out == nil {
@@ -46,23 +54,35 @@ func (s *Stub) Validate() error {
 	return nil
 }
 
-func (s *Stub) Match(in map[string]interface{}) bool {
-	if s.In == nil {
+func (s *Stub) Match(req models.Request) bool {
+	mdOk := s.match(s.Metadata, req.Metadata)
+	if !mdOk && s.Metadata != nil {
 		return false
 	}
 
-	if s.In.Equals != nil {
-		return equals(s.In.Equals, in)
+	if s.In != nil {
+		return s.match(s.In, req.Data)
 	}
 
-	if s.In.Contains != nil {
-		return contains(s.In.Contains, in)
-	}
+	return mdOk
+}
 
-	if s.In.Matches != nil {
-		return matches(s.In.Matches, in)
+func (s *Stub) match(input *Input, in map[string]interface{}) bool {
+	if input == nil {
+		return false
 	}
-
+	if input.Equals != nil {
+		return equals(input.Equals, in)
+	}
+	if input.Contains != nil {
+		return contains(input.Contains, in)
+	}
+	if input.Has != nil {
+		return contains(in, input.Has)
+	}
+	if input.Matches != nil {
+		return matches(input.Matches, in)
+	}
 	return false
 }
 

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	log "github.com/golang/glog"
+	"github.com/monlabs/grpc-mock/pkg/models"
 )
 
 type Manager struct {
@@ -51,16 +52,16 @@ func (m *Manager) LoadStubsFromFile(dir string) error {
 	return nil
 }
 
-func (m *Manager) FindStubs(service, method string, in map[string]interface{}) []*Stub {
+func (m *Manager) FindStubs(service, method string, req models.Request) []*Stub {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	stubs := m.stubs[service][method]
-	if len(in) == 0 {
+	if len(req.Data) == 0 && len(req.Metadata) == 0 {
 		return stubs
 	}
 
 	for _, stub := range stubs {
-		if stub.Match(in) {
+		if stub.Match(req) {
 			return []*Stub{stub}
 		}
 	}
