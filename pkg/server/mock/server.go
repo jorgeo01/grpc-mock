@@ -104,6 +104,8 @@ func (s *Server) createUnaryServerHandler(md *desc.MethodDescriptor) func(srv in
 			return nil, err
 		}
 
+		fmt.Printf("----- %s/%s -----\n", md.GetService().GetFullyQualifiedName(), md.GetName())
+
 		var (
 			out proto.Message
 			err error

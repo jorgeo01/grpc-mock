@@ -2,6 +2,7 @@ package stub
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"regexp"
 
@@ -56,12 +57,16 @@ func (s *Stub) Validate() error {
 
 func (s *Stub) Match(req models.Request) bool {
 	mdOk := s.match(s.Metadata, req.Metadata)
+	fmt.Println("mdOK: ", mdOk)
 	if !mdOk && s.Metadata != nil {
+		fmt.Println("Exiting now")
 		return false
 	}
 
 	if s.In != nil {
-		return s.match(s.In, req.Data)
+		res := s.match(s.In, req.Data)
+		fmt.Println("Checked in:", res)
+		return res
 	}
 
 	return mdOk
