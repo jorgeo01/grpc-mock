@@ -1,4 +1,4 @@
-module github.com/jorgeo01/grpc-mock/v1
+module github.com/jorgeo01/grpc-mock/v2
 
 go 1.13
 
