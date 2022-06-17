@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/monlabs/grpc-mock/pkg/stub"
-	pbutils "github.com/monlabs/grpc-mock/pkg/utils/pb"
-	mockpb "github.com/monlabs/grpc-mock/proto/mock"
+	"github.com/jorgeo01/grpc-mock/v2/pkg/stub"
+	pbutils "github.com/jorgeo01/grpc-mock/v2/pkg/utils/pb"
+	mockpb "github.com/jorgeo01/grpc-mock/v2/proto/mock"
 )
 
 func PBStubsToStubs(pbstubs []*mockpb.Stub) ([]*stub.Stub, error) {

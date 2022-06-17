@@ -23,10 +23,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 	dppb "google.golang.org/protobuf/types/descriptorpb"
 
-	api "github.com/monlabs/grpc-mock/pkg/server/api"
-	"github.com/monlabs/grpc-mock/pkg/server/mock"
-	"github.com/monlabs/grpc-mock/pkg/stub"
-	mockpb "github.com/monlabs/grpc-mock/proto/mock"
+	api "github.com/jorgeo01/grpc-mock/v2/pkg/server/api"
+	"github.com/jorgeo01/grpc-mock/v2/pkg/server/mock"
+	"github.com/jorgeo01/grpc-mock/v2/pkg/stub"
+	mockpb "github.com/jorgeo01/grpc-mock/v2/proto/mock"
 )
 
 var (
@@ -75,6 +75,7 @@ func main() {
 	go startAPIServer(apiAddr, api.NewServer(stubMgr))
 
 	mockServer := mock.NewServer(mockAddr, stubMgr)
+	
 	err = mockServer.Start()
 	if err != nil {
 		log.Fatalf("start mock server failed: %v", err)

@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
-	"github.com/monlabs/grpc-mock/pkg/stub"
+	"github.com/jorgeo01/grpc-mock/v2/pkg/stub"
 )
 
 type StubMatcher interface {
@@ -42,6 +42,10 @@ func NewServer(addr string, m StubMatcher) *Server {
 		matcher: m,
 		mshlr:   jsonpb.Marshaler{OrigName: true},
 	}
+}
+
+func (s *Server) GetServer() *grpc.Server {
+	return s.svr
 }
 
 func (s *Server) RegisterServices(fds []*desc.FileDescriptor) {
