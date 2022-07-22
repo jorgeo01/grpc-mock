@@ -8,6 +8,11 @@ import (
 	log "github.com/golang/glog"
 )
 
+const (
+	MATCH_ALWAYS_KEY   = "all"
+	MATCH_ALWAYS_VALUE = "*"
+)
+
 type Stub struct {
 	Service string  `json:"service"`
 	Method  string  `json:"method"`
@@ -90,6 +95,10 @@ func matches(pattern, in map[string]interface{}) bool {
 		pStr, ok := pattern[k].(string)
 		if !ok {
 			return false
+		}
+
+		if k == MATCH_ALWAYS_KEY && v == MATCH_ALWAYS_VALUE {
+			return true
 		}
 
 		match, err := regexp.Match(pStr, []byte(valStr))
