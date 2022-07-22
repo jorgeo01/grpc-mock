@@ -44,10 +44,6 @@ func NewServer(addr string, m StubMatcher) *Server {
 	}
 }
 
-func (s *Server) GetServer() *grpc.Server {
-	return s.svr
-}
-
 func (s *Server) RegisterServices(fds []*desc.FileDescriptor) {
 	sds := s.createGRPCServiceDesc(fds)
 	s.registerServices(sds)
